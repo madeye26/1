@@ -1,488 +1,234 @@
-// Time Tracking System
+// Initialize time tracking state
+if (typeof window.appState === 'undefined') {
+    window.appState = {};
+}
 
-// Global state for time tracking
-if (!appState.timeRecords) {
-    appState.timeRecords = [];
+if (!window.appState.timeRecords) {
+    window.appState.timeRecords = [];
+}
+
+// Helper function to generate employee options
+function generateEmployeeOptions() {
+    return (window.appState.employees || []).map(emp => 
+        `<option value="${emp.code}">${emp.name} (${emp.code})</option>`
+    ).join('');
 }
 
 // Load Time Tracking View
 function loadTimeTrackingView() {
     const mainContent = document.getElementById('main-content');
+    if (!mainContent) return;
     
     mainContent.innerHTML = `
         <div class="form-container">
             <h3 class="mb-4">تتبع وقت الموظفين</h3>
             
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">تسجيل وقت الحضور والانصراف</h5>
-                            <div class="mb-3">
-                                <label class="form-label">اختر الموظف</label>
-                                <select class="form-select" id="time-tracking-employee-select">
-                                    <option value="">-- اختر الموظف --</option>
-                                    ${generateEmployeeOptions()}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">التاريخ</label>
-                                <input type="date" class="form-control" id="time-tracking-date" value="${new Date().toISOString().split('T')[0]}">
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">وقت الحضور</label>
-                                    <input type="time" class="form-control" id="time-in">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">وقت الانصراف</label>
-                                    <input type="time" class="form-control" id="time-out">
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">ملاحظات</label>
-                                <textarea class="form-control" id="time-tracking-notes" rows="2"></textarea>
-                            </div>
-                            <button class="btn btn-primary" onclick="saveTimeRecord()">حفظ</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">تسجيل الأوفرتايم</h5>
-                            <div class="mb-3">
-                                <label class="form-label">اختر الموظف</label>
-                                <select class="form-select" id="overtime-employee-select">
-                                    <option value="">-- اختر الموظف --</option>
-                                    ${generateEmployeeOptions()}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">التاريخ</label>
-                                <input type="date" class="form-control" id="overtime-date" value="${new Date().toISOString().split('T')[0]}">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">عدد ساعات الأوفرتايم</label>
-                                <input type="number" class="form-control" id="overtime-hours" min="0" step="0.5">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">سبب الأوفرتايم</label>
-                                <textarea class="form-control" id="overtime-reason" rows="2"></textarea>
-                            </div>
-                            <button class="btn btn-primary" onclick="saveOvertimeRecord()">حفظ</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <div class="card mb-4">
                 <div class="card-body">
-                    <h5 class="card-title">سجل الحضور والانصراف</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">تصفية حسب الموظف</label>
-                            <select class="form-select" id="filter-employee" onchange="filterTimeRecords()">
-                                <option value="">جميع الموظفين</option>
-                                ${generateEmployeeOptions()}
-                            </select>
+                    <form id="time-tracking-form" onsubmit="handleTimeTrackingSubmit(event)">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">اختر الموظف</label>
+                                <select class="form-select" id="time-tracking-employee-select" required>
+                                    <option value="">-- اختر الموظف --</option>
+                                    ${generateEmployeeOptions()}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">التاريخ</label>
+                                <input type="date" class="form-control" id="time-tracking-date" required>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">من تاريخ</label>
-                            <input type="date" class="form-control" id="filter-date-from" onchange="filterTimeRecords()">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">وقت الحضور</label>
+                                <input type="time" class="form-control" id="time-in" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">وقت الانصراف</label>
+                                <input type="time" class="form-control" id="time-out" required>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">إلى تاريخ</label>
-                            <input type="date" class="form-control" id="filter-date-to" onchange="filterTimeRecords()">
+                        <div class="mb-3">
+                            <label class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="time-tracking-notes" rows="3"></textarea>
                         </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>الموظف</th>
-                                    <th>التاريخ</th>
-                                    <th>وقت الحضور</th>
-                                    <th>وقت الانصراف</th>
-                                    <th>ساعات العمل</th>
-                                    <th>الأوفرتايم</th>
-                                    <th>ملاحظات</th>
-                                    <th>الإجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody id="time-records-table-body">
-                                <!-- Time records will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
+                        <button type="submit" class="btn btn-primary">حفظ</button>
+                    </form>
                 </div>
             </div>
             
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">تقرير ساعات العمل</h5>
+                    <h5 class="card-title mb-3">تقرير ساعات العمل</h5>
                     <div class="row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">اختر الموظف</label>
                             <select class="form-select" id="report-employee-select" onchange="generateWorkHoursReport()">
-                                <option value="">-- اختر الموظف --</option>
+                                <option value="">جميع الموظفين</option>
                                 ${generateEmployeeOptions()}
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">الشهر</label>
-                            <input type="month" class="form-control" id="report-month" onchange="generateWorkHoursReport()">
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button class="btn btn-success" onclick="exportWorkHoursReport()">تصدير التقرير</button>
+                            <input type="month" class="form-control" id="report-month" 
+                                   value="${new Date().toISOString().slice(0, 7)}" 
+                                   onchange="generateWorkHoursReport()">
                         </div>
                     </div>
-                    <div id="work-hours-report-container">
-                        <!-- Report will be generated here -->
-                    </div>
+                    <div id="work-hours-report"></div>
                 </div>
             </div>
         </div>
     `;
     
-    // Initialize the time records table
-    loadTimeRecordsTable();
+    // Set default date to today
+    document.getElementById('time-tracking-date').valueAsDate = new Date();
     
-    // Set default dates for filtering
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    document.getElementById('filter-date-from').valueAsDate = firstDayOfMonth;
-    document.getElementById('filter-date-to').valueAsDate = today;
-    document.getElementById('report-month').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    // Generate initial report
+    generateWorkHoursReport();
 }
 
-// Save time record
-function saveTimeRecord() {
+// Handle time tracking form submission
+function handleTimeTrackingSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
     const employeeSelect = document.getElementById('time-tracking-employee-select');
     const dateInput = document.getElementById('time-tracking-date');
     const timeInInput = document.getElementById('time-in');
     const timeOutInput = document.getElementById('time-out');
     const notesInput = document.getElementById('time-tracking-notes');
     
-    // Validate inputs
-    if (!employeeSelect.value) {
-        showAlert('الرجاء اختيار الموظف', 'warning');
+    if (!employeeSelect || !dateInput || !timeInInput || !timeOutInput) {
+        showAlert('حدث خطأ في النموذج', 'danger');
         return;
-    }
-    
-    if (!dateInput.value) {
-        showAlert('الرجاء تحديد التاريخ', 'warning');
-        return;
-    }
-    
-    if (!timeInInput.value && !timeOutInput.value) {
-        showAlert('الرجاء تحديد وقت الحضور أو الانصراف على الأقل', 'warning');
-        return;
-    }
-    
-    // Calculate work hours if both time in and time out are provided
-    let workHours = 0;
-    if (timeInInput.value && timeOutInput.value) {
-        const timeIn = new Date(`${dateInput.value}T${timeInInput.value}`);
-        const timeOut = new Date(`${dateInput.value}T${timeOutInput.value}`);
-        
-        // Handle case where time out is on the next day
-        if (timeOut < timeIn) {
-            timeOut.setDate(timeOut.getDate() + 1);
-        }
-        
-        workHours = (timeOut - timeIn) / (1000 * 60 * 60);
     }
     
     // Get employee details
-    const employee = appState.employees.find(emp => emp.code === employeeSelect.value);
+    const employee = window.appState.employees.find(emp => emp.code === employeeSelect.value);
+    if (!employee) {
+        showAlert('لم يتم العثور على الموظف', 'danger');
+        return;
+    }
     
-    // Create time record object
     const timeRecord = {
         id: Date.now().toString(),
         employeeCode: employeeSelect.value,
-        employeeName: employee ? employee.name : '',
+        employeeName: employee.name,
         date: dateInput.value,
         timeIn: timeInInput.value,
         timeOut: timeOutInput.value,
-        workHours: workHours,
-        overtimeHours: 0,
-        notes: notesInput.value
+        notes: notesInput ? notesInput.value : '',
+        createdAt: new Date().toISOString()
     };
     
-    // Check if record for this employee and date already exists
-    const existingRecordIndex = appState.timeRecords.findIndex(
-        record => record.employeeCode === timeRecord.employeeCode && record.date === timeRecord.date
-    );
-    
-    if (existingRecordIndex !== -1) {
-        // Update existing record
-        const existingRecord = appState.timeRecords[existingRecordIndex];
-        
-        // Keep overtime hours from existing record
-        timeRecord.overtimeHours = existingRecord.overtimeHours;
-        
-        appState.timeRecords[existingRecordIndex] = timeRecord;
-        showAlert('تم تحديث سجل الحضور والانصراف بنجاح', 'success');
-    } else {
-        // Add new record
-        appState.timeRecords.push(timeRecord);
-        showAlert('تم تسجيل الحضور والانصراف بنجاح', 'success');
-    }
+    // Add to state
+    window.appState.timeRecords.push(timeRecord);
     
     // Save to localStorage
-    saveToLocalStorage('timeRecords', appState.timeRecords);
+    saveToLocalStorage('timeRecords', window.appState.timeRecords);
     
-    // Refresh the table
-    loadTimeRecordsTable();
+    // Show success message
+    showAlert('تم حفظ سجل الدوام بنجاح', 'success');
     
-    // Clear form
-    employeeSelect.value = '';
-    timeInInput.value = '';
-    timeOutInput.value = '';
-    notesInput.value = '';
-}
-
-// Load time records table
-function loadTimeRecordsTable() {
-    const tableBody = document.getElementById('time-records-table-body');
-    if (!tableBody) return;
+    // Reset form
+    form.reset();
+    dateInput.valueAsDate = new Date();
     
-    // Get filter values
-    const filterEmployee = document.getElementById('filter-employee')?.value || '';
-    const filterDateFrom = document.getElementById('filter-date-from')?.value || '';
-    const filterDateTo = document.getElementById('filter-date-to')?.value || '';
-    
-    // Filter records
-    let filteredRecords = [...appState.timeRecords];
-    
-    if (filterEmployee) {
-        filteredRecords = filteredRecords.filter(record => record.employeeCode === filterEmployee);
-    }
-    
-    if (filterDateFrom) {
-        filteredRecords = filteredRecords.filter(record => record.date >= filterDateFrom);
-    }
-    
-    if (filterDateTo) {
-        filteredRecords = filteredRecords.filter(record => record.date <= filterDateTo);
-    }
-    
-    // Sort by date (newest first)
-    filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    // Generate table rows
-    tableBody.innerHTML = filteredRecords.length > 0 ? 
-        filteredRecords.map(record => `
-            <tr>
-                <td>${record.employeeName}</td>
-                <td>${formatDate(record.date)}</td>
-                <td>${record.timeIn || '-'}</td>
-                <td>${record.timeOut || '-'}</td>
-                <td>${record.workHours > 0 ? record.workHours.toFixed(2) : '-'}</td>
-                <td>${record.overtimeHours > 0 ? record.overtimeHours.toFixed(2) : '-'}</td>
-                <td>${record.notes || '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="editTimeRecord('${record.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteTimeRecord('${record.id}')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('') : 
-        '<tr><td colspan="8" class="text-center">لا توجد سجلات</td></tr>';
-}
-
-// Filter time records
-function filterTimeRecords() {
-    loadTimeRecordsTable();
-}
-
-// Edit time record
-function editTimeRecord(recordId) {
-    const record = appState.timeRecords.find(r => r.id === recordId);
-    if (!record) return;
-    
-    // Populate time tracking form
-    document.getElementById('time-tracking-employee-select').value = record.employeeCode;
-    document.getElementById('time-tracking-date').value = record.date;
-    document.getElementById('time-in').value = record.timeIn;
-    document.getElementById('time-out').value = record.timeOut;
-    document.getElementById('time-tracking-notes').value = record.notes;
-    
-    // Scroll to form
-    document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
-    
-    // Show notification
-    showAlert('تم تحميل بيانات السجل للتعديل', 'info');
-}
-
-// Delete time record
-function deleteTimeRecord(recordId) {
-    if (confirm('هل أنت متأكد من حذف هذا السجل؟')) {
-        appState.timeRecords = appState.timeRecords.filter(r => r.id !== recordId);
-        saveToLocalStorage('timeRecords', appState.timeRecords);
-        loadTimeRecordsTable();
-        showAlert('تم حذف السجل بنجاح', 'success');
-    }
+    // Refresh report
+    generateWorkHoursReport();
 }
 
 // Generate work hours report
 function generateWorkHoursReport() {
+    const reportContainer = document.getElementById('work-hours-report');
+    if (!reportContainer) return;
+    
     const employeeSelect = document.getElementById('report-employee-select');
     const monthInput = document.getElementById('report-month');
-    const reportContainer = document.getElementById('work-hours-report-container');
     
-    if (!employeeSelect.value || !monthInput.value) {
-        reportContainer.innerHTML = '<div class="alert alert-warning">الرجاء اختيار الموظف والشهر</div>';
+    if (!monthInput.value) {
+        reportContainer.innerHTML = '<div class="alert alert-warning">الرجاء اختيار الشهر</div>';
         return;
     }
     
-    // Get selected month details
+    // Get date range for selected month
     const [year, month] = monthInput.value.split('-');
     const startDate = new Date(year, parseInt(month) - 1, 1);
-    const endDate = new Date(year, parseInt(month), 0); // Last day of month
+    const endDate = new Date(year, parseInt(month), 0);
     
-    // Filter records for selected employee and month
-    const employeeRecords = appState.timeRecords.filter(record => 
-        record.employeeCode === employeeSelect.value &&
-        new Date(record.date) >= startDate &&
-        new Date(record.date) <= endDate
-    );
+    // Filter records
+    let records = [...window.appState.timeRecords];
+    
+    if (employeeSelect && employeeSelect.value) {
+        records = records.filter(record => record.employeeCode === employeeSelect.value);
+    }
+    
+    records = records.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= startDate && recordDate <= endDate;
+    });
     
     // Sort by date
-    employeeRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // Calculate totals
-    const totalWorkHours = employeeRecords.reduce((sum, record) => sum + (record.workHours || 0), 0);
-    const totalOvertimeHours = employeeRecords.reduce((sum, record) => sum + (record.overtimeHours || 0), 0);
-    
-    // Get employee details
-    const employee = appState.employees.find(emp => emp.code === employeeSelect.value);
+    records.sort((a, b) => new Date(a.date) - new Date(b.date));
     
     // Generate report HTML
+    if (records.length === 0) {
+        reportContainer.innerHTML = '<div class="alert alert-info">لا توجد سجلات دوام لهذا الشهر</div>';
+        return;
+    }
+    
     reportContainer.innerHTML = `
-        <div class="card mt-3">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">تقرير ساعات العمل - ${employee ? employee.name : ''}</h5>
-                <div class="small">${startDate.toLocaleDateString('ar-SA')} إلى ${endDate.toLocaleDateString('ar-SA')}</div>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h6>إجمالي ساعات العمل</h6>
-                                <h3>${totalWorkHours.toFixed(2)}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h6>إجمالي ساعات الأوفرتايم</h6>
-                                <h3>${totalOvertimeHours.toFixed(2)}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h6>عدد أيام العمل</h6>
-                                <h3>${employeeRecords.length}</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered">
-                        <thead>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>الموظف</th>
+                        <th>التاريخ</th>
+                        <th>وقت الحضور</th>
+                        <th>وقت الانصراف</th>
+                        <th>عدد الساعات</th>
+                        <th>ملاحظات</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${records.map(record => {
+                        const timeIn = new Date(`${record.date}T${record.timeIn}`);
+                        const timeOut = new Date(`${record.date}T${record.timeOut}`);
+                        const hours = (timeOut - timeIn) / (1000 * 60 * 60);
+                        
+                        return `
                             <tr>
-                                <th>التاريخ</th>
-                                <th>وقت الحضور</th>
-                                <th>وقت الانصراف</th>
-                                <th>ساعات العمل</th>
-                                <th>الأوفرتايم</th>
-                                <th>ملاحظات</th>
+                                <td>${record.employeeName}</td>
+                                <td>${formatDate(record.date)}</td>
+                                <td>${formatTime(record.timeIn)}</td>
+                                <td>${formatTime(record.timeOut)}</td>
+                                <td>${hours.toFixed(2)}</td>
+                                <td>${record.notes || '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTimeRecord('${record.id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${employeeRecords.length > 0 ? 
-                                employeeRecords.map(record => `
-                                    <tr>
-                                        <td>${formatDate(record.date)}</td>
-                                        <td>${record.timeIn || '-'}</td>
-                                        <td>${record.timeOut || '-'}</td>
-                                        <td>${record.workHours > 0 ? record.workHours.toFixed(2) : '-'}</td>
-                                        <td>${record.overtimeHours > 0 ? record.overtimeHours.toFixed(2) : '-'}</td>
-                                        <td>${record.notes || '-'}</td>
-                                    </tr>
-                                `).join('') : 
-                                '<tr><td colspan="6" class="text-center">لا توجد سجلات</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
         </div>
     `;
 }
 
-// Export work hours report
-function exportWorkHoursReport() {
-    const reportContainer = document.getElementById('work-hours-report-container');
-    if (!reportContainer.innerHTML.trim()) {
-        showAlert('الرجاء إنشاء التقرير أولاً', 'warning');
-        return;
+// Delete time record
+function deleteTimeRecord(id) {
+    if (confirm('هل أنت متأكد من حذف سجل الدوام؟')) {
+        window.appState.timeRecords = window.appState.timeRecords.filter(record => record.id !== id);
+        saveToLocalStorage('timeRecords', window.appState.timeRecords);
+        generateWorkHoursReport();
+        showAlert('تم حذف سجل الدوام بنجاح', 'success');
     }
-    
-    const employeeSelect = document.getElementById('report-employee-select');
-    const monthInput = document.getElementById('report-month');
-    
-    // Get employee name
-    const employee = appState.employees.find(emp => emp.code === employeeSelect.value);
-    const employeeName = employee ? employee.name : 'موظف';
-    
-    // Format month name
-    const [year, month] = monthInput.value.split('-');
-    const monthDate = new Date(year, parseInt(month) - 1, 1);
-    const monthName = monthDate.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
-    
-    // Create a clone of the report for printing
-    const reportClone = reportContainer.cloneNode(true);
-    
-    // Add print header
-    const printHeader = document.createElement('div');
-    printHeader.className = 'print-header text-center mb-4';
-    printHeader.innerHTML = `
-        <h2>تقرير ساعات العمل</h2>
-        <h4>${employeeName} - ${monthName}</h4>
-    `;
-    
-    // Create print container
-    const printContainer = document.createElement('div');
-    printContainer.className = 'print-container';
-    printContainer.appendChild(printHeader);
-    printContainer.appendChild(reportClone);
-    
-    // Generate PDF
-    html2pdf()
-        .from(printContainer)
-        .set({
-            margin: 10,
-            filename: `تقرير_ساعات_العمل_${employeeName}_${monthInput.value}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        })
-        .save()
-        .then(() => {
-            showAlert('تم تصدير التقرير بنجاح', 'success');
-        })
-        .catch(err => {
-            console.error('Error exporting report:', err);
-            showAlert('حدث خطأ أثناء تصدير التقرير', 'danger');
-        });
 }
 
 // Helper function to format date
@@ -490,415 +236,45 @@ function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('ar-SA');
 }
-    
-    // Clear form
-    employeeSelect.value = '';
-    dateInput.value = new Date().toISOString().split('T')[0];
-    timeInInput.value = '';
-    timeOutInput.value = '';
-    notesInput.value = '';
-// Save time record
-function saveTimeRecord() {
-    const employeeSelect = document.getElementById('time-tracking-employee-select');
-    const dateInput = document.getElementById('time-tracking-date');
-    const timeInInput = document.getElementById('time-in');
-    const timeOutInput = document.getElementById('time-out');
-    const notesInput = document.getElementById('time-tracking-notes');
-    
-    // Validate inputs
-    if (!employeeSelect.value) {
-        showAlert('الرجاء اختيار الموظف', 'warning');
-        return;
-    }
-    
-    if (!dateInput.value) {
-        showAlert('الرجاء تحديد التاريخ', 'warning');
-        return;
-    }
-    
-    if (!timeInInput.value && !timeOutInput.value) {
-        showAlert('الرجاء تحديد وقت الحضور أو الانصراف على الأقل', 'warning');
-        return;
-    }
-    
-    // Calculate work hours if both time in and time out are provided
-    let workHours = 0;
-    if (timeInInput.value && timeOutInput.value) {
-        const timeIn = new Date(`${dateInput.value}T${timeInInput.value}`);
-        const timeOut = new Date(`${dateInput.value}T${timeOutInput.value}`);
-        
-        // Handle case where time out is on the next day
-        if (timeOut < timeIn) {
-            timeOut.setDate(timeOut.getDate() + 1);
-        }
-        
-        workHours = (timeOut - timeIn) / (1000 * 60 * 60);
-    }
-    
-    // Get employee details
-    const employee = appState.employees.find(emp => emp.code === employeeSelect.value);
-    
-    // Create time record object
-    const timeRecord = {
-        id: Date.now().toString(),
-        employeeCode: employeeSelect.value,
-        employeeName: employee ? employee.name : '',
-        date: dateInput.value,
-        timeIn: timeInInput.value,
-        timeOut: timeOutInput.value,
-        workHours: workHours,
-        overtimeHours: 0,
-        notes: notesInput.value
-    };
-    
-    // Check if record for this employee and date already exists
-    const existingRecordIndex = appState.timeRecords.findIndex(
-        record => record.employeeCode === timeRecord.employeeCode && record.date === timeRecord.date
-    );
-    
-    if (existingRecordIndex !== -1) {
-        // Update existing record
-        const existingRecord = appState.timeRecords[existingRecordIndex];
-        
-        // Keep overtime hours from existing record
-        timeRecord.overtimeHours = existingRecord.overtimeHours;
-        
-        appState.timeRecords[existingRecordIndex] = timeRecord;
-        showAlert('تم تحديث سجل الحضور والانصراف بنجاح', 'success');
-    } else {
-        // Add new record
-        appState.timeRecords.push(timeRecord);
-        showAlert('تم تسجيل الحضور والانصراف بنجاح', 'success');
-    }
-    
-    // Save to localStorage
-    saveToLocalStorage('timeRecords', appState.timeRecords);
-    
-    // Refresh the table
-    loadTimeRecordsTable();
-    
-    // Clear form
-    employeeSelect.value = '';
-    timeInInput.value = '';
-    timeOutInput.value = '';
-    notesInput.value = '';
+
+// Helper function to format time
+function formatTime(timeString) {
+    return timeString;
 }
 
-// Save overtime record
-function saveOvertimeRecord() {
-    const employeeSelect = document.getElementById('overtime-employee-select');
-    const dateInput = document.getElementById('overtime-date');
-    const overtimeHoursInput = document.getElementById('overtime-hours');
-    const overtimeReasonInput = document.getElementById('overtime-reason');
-    
-    // Validate inputs
-    if (!employeeSelect.value) {
-        showAlert('الرجاء اختيار الموظف', 'warning');
-        return;
-    }
-    
-    if (!dateInput.value) {
-        showAlert('الرجاء تحديد التاريخ', 'warning');
-        return;
-    }
-    
-    if (!overtimeHoursInput.value || parseFloat(overtimeHoursInput.value) <= 0) {
-        showAlert('الرجاء تحديد عدد ساعات الأوفرتايم', 'warning');
-        return;
-    }
-    
-    // Get employee details
-    const employee = appState.employees.find(emp => emp.code === employeeSelect.value);
-    
-    // Check if time record for this employee and date already exists
-    const existingRecordIndex = appState.timeRecords.findIndex(
-        record => record.employeeCode === employeeSelect.value && record.date === dateInput.value
-    );
-    
-    if (existingRecordIndex !== -1) {
-        // Update existing record with overtime information
-        appState.timeRecords[existingRecordIndex].overtimeHours = parseFloat(overtimeHoursInput.value);
-        
-        // Append overtime reason to notes if provided
-        if (overtimeReasonInput.value) {
-            const currentNotes = appState.timeRecords[existingRecordIndex].notes;
-            appState.timeRecords[existingRecordIndex].notes = currentNotes ? 
-                `${currentNotes} | أوفرتايم: ${overtimeReasonInput.value}` : 
-                `أوفرتايم: ${overtimeReasonInput.value}`;
-        }
-        
-        showAlert('تم تحديث سجل الأوفرتايم بنجاح', 'success');
-    } else {
-        // Create new time record with only overtime information
-        const timeRecord = {
-            id: Date.now().toString(),
-            employeeCode: employeeSelect.value,
-            employeeName: employee ? employee.name : '',
-            date: dateInput.value,
-            timeIn: '',
-            timeOut: '',
-            workHours: 0,
-            overtimeHours: parseFloat(overtimeHoursInput.value),
-            notes: overtimeReasonInput.value ? `أوفرتايم: ${overtimeReasonInput.value}` : ''
-        };
-        
-        appState.timeRecords.push(timeRecord);
-        showAlert('تم تسجيل الأوفرتايم بنجاح', 'success');
-    }
-    
-    // Save to localStorage
-    saveToLocalStorage('timeRecords', appState.timeRecords);
-    
-    // Refresh the table
-    loadTimeRecordsTable();
-    
-    // Clear form
-    overtimeHoursInput.value = '';
-    overtimeReasonInput.value = '';
-}
-
-// Load time records table
-function loadTimeRecordsTable() {
-    const tableBody = document.getElementById('time-records-table-body');
-    if (!tableBody) return;
-    
-    // Get filter values
-    const filterEmployee = document.getElementById('filter-employee')?.value || '';
-    const filterDateFrom = document.getElementById('filter-date-from')?.value || '';
-    const filterDateTo = document.getElementById('filter-date-to')?.value || '';
-    
-    // Filter records
-    let filteredRecords = [...appState.timeRecords];
-    
-    if (filterEmployee) {
-        filteredRecords = filteredRecords.filter(record => record.employeeCode === filterEmployee);
-    }
-    
-    if (filterDateFrom) {
-        filteredRecords = filteredRecords.filter(record => record.date >= filterDateFrom);
-    }
-    
-    if (filterDateTo) {
-        filteredRecords = filteredRecords.filter(record => record.date <= filterDateTo);
-    }
-    
-    // Sort by date (newest first)
-    filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    // Generate table rows
-    tableBody.innerHTML = filteredRecords.length > 0 ? 
-        filteredRecords.map(record => `
-            <tr>
-                <td>${record.employeeName}</td>
-                <td>${formatDate(record.date)}</td>
-                <td>${record.timeIn || '-'}</td>
-                <td>${record.timeOut || '-'}</td>
-                <td>${record.workHours > 0 ? record.workHours.toFixed(2) : '-'}</td>
-                <td>${record.overtimeHours > 0 ? record.overtimeHours.toFixed(2) : '-'}</td>
-                <td>${record.notes || '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="editTimeRecord('${record.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteTimeRecord('${record.id}')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('') : 
-        '<tr><td colspan="8" class="text-center">لا توجد سجلات</td></tr>';
-}
-
-// Filter time records
-function filterTimeRecords() {
-    loadTimeRecordsTable();
-}
-
-// Edit time record
-function editTimeRecord(recordId) {
-    const record = appState.timeRecords.find(r => r.id === recordId);
-    if (!record) return;
-    
-    // Populate time tracking form
-    document.getElementById('time-tracking-employee-select').value = record.employeeCode;
-    document.getElementById('time-tracking-date').value = record.date;
-    document.getElementById('time-in').value = record.timeIn;
-    document.getElementById('time-out').value = record.timeOut;
-    document.getElementById('time-tracking-notes').value = record.notes;
-    
-    // Scroll to form
-    document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
-    
-    // Show notification
-    showAlert('تم تحميل بيانات السجل للتعديل', 'info');
-}
-
-// Delete time record
-function deleteTimeRecord(recordId) {
-    if (confirm('هل أنت متأكد من حذف هذا السجل؟')) {
-        appState.timeRecords = appState.timeRecords.filter(r => r.id !== recordId);
-        saveToLocalStorage('timeRecords', appState.timeRecords);
-        loadTimeRecordsTable();
-        showAlert('تم حذف السجل بنجاح', 'success');
+// Helper function to save to localStorage
+function saveToLocalStorage(key, data) {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+        console.error('Error saving to localStorage:', error);
+        showAlert('حدث خطأ أثناء حفظ البيانات', 'danger');
     }
 }
 
-// Generate work hours report
-function generateWorkHoursReport() {
-    const employeeSelect = document.getElementById('report-employee-select');
-    const monthInput = document.getElementById('report-month');
-    const reportContainer = document.getElementById('work-hours-report-container');
-    
-    if (!employeeSelect.value || !monthInput.value) {
-        reportContainer.innerHTML = '<div class="alert alert-warning">الرجاء اختيار الموظف والشهر</div>';
-        return;
-    }
-    
-    // Get selected month details
-    const [year, month] = monthInput.value.split('-');
-    const startDate = new Date(year, parseInt(month) - 1, 1);
-    const endDate = new Date(year, parseInt(month), 0); // Last day of month
-    
-    // Filter records for selected employee and month
-    const employeeRecords = appState.timeRecords.filter(record => 
-        record.employeeCode === employeeSelect.value &&
-        new Date(record.date) >= startDate &&
-        new Date(record.date) <= endDate
-    );
-    
-    // Sort by date
-    employeeRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // Calculate totals
-    const totalWorkHours = employeeRecords.reduce((sum, record) => sum + (record.workHours || 0), 0);
-    const totalOvertimeHours = employeeRecords.reduce((sum, record) => sum + (record.overtimeHours || 0), 0);
-    
-    // Get employee details
-    const employee = appState.employees.find(emp => emp.code === employeeSelect.value);
-    
-    // Generate report HTML
-    reportContainer.innerHTML = `
-        <div class="card mt-3">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">تقرير ساعات العمل - ${employee ? employee.name : ''}</h5>
-                <div class="small">${startDate.toLocaleDateString('ar-SA')} إلى ${endDate.toLocaleDateString('ar-SA')}</div>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h6>إجمالي ساعات العمل</h6>
-                                <h3>${totalWorkHours.toFixed(2)}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h6>إجمالي ساعات الأوفرتايم</h6>
-                                <h3>${totalOvertimeHours.toFixed(2)}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h6>عدد أيام العمل</h6>
-                                <h3>${employeeRecords.length}</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered">
-                        <thead>
-                            <tr>
-                                <th>التاريخ</th>
-                                <th>وقت الحضور</th>
-                                <th>وقت الانصراف</th>
-                                <th>ساعات العمل</th>
-                                <th>الأوفرتايم</th>
-                                <th>ملاحظات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${employeeRecords.length > 0 ? 
-                                employeeRecords.map(record => `
-                                    <tr>
-                                        <td>${formatDate(record.date)}</td>
-                                        <td>${record.timeIn || '-'}</td>
-                                        <td>${record.timeOut || '-'}</td>
-                                        <td>${record.workHours > 0 ? record.workHours.toFixed(2) : '-'}</td>
-                                        <td>${record.overtimeHours > 0 ? record.overtimeHours.toFixed(2) : '-'}</td>
-                                        <td>${record.notes || '-'}</td>
-                                    </tr>
-                                `).join('') : 
-                                '<tr><td colspan="6" class="text-center">لا توجد سجلات</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Export work hours report
-function exportWorkHoursReport() {
-    const reportContainer = document.getElementById('work-hours-report-container');
-    if (!reportContainer.innerHTML.trim()) {
-        showAlert('الرجاء إنشاء التقرير أولاً', 'warning');
-        return;
-    }
-    
-    const employeeSelect = document.getElementById('report-employee-select');
-    const monthInput = document.getElementById('report-month');
-    
-    // Get employee name
-    const employee = appState.employees.find(emp => emp.code === employeeSelect.value);
-    const employeeName = employee ? employee.name : 'موظف';
-    
-    // Format month name
-    const [year, month] = monthInput.value.split('-');
-    const monthDate = new Date(year, parseInt(month) - 1, 1);
-    const monthName = monthDate.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
-    
-    // Create a clone of the report for printing
-    const reportClone = reportContainer.cloneNode(true);
-    
-    // Add print header
-    const printHeader = document.createElement('div');
-    printHeader.className = 'print-header text-center mb-4';
-    printHeader.innerHTML = `
-        <h2>تقرير ساعات العمل</h2>
-        <h4>${employeeName} - ${monthName}</h4>
+// Helper function to show alerts
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
     
-    // Create print container
-    const printContainer = document.createElement('div');
-    printContainer.className = 'print-container';
-    printContainer.appendChild(printHeader);
-    printContainer.appendChild(reportClone);
+    // Find alert container or create one
+    let alertContainer = document.getElementById('alert-container');
+    if (!alertContainer) {
+        alertContainer = document.createElement('div');
+        alertContainer.id = 'alert-container';
+        alertContainer.className = 'alert-container';
+        document.body.appendChild(alertContainer);
+    }
     
-    // Generate PDF
-    html2pdf()
-        .from(printContainer)
-        .set({
-            margin: 10,
-            filename: `تقرير_ساعات_العمل_${employeeName}_${monthInput.value}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        })
-        .save()
-        .then(() => {
-            showAlert('تم تصدير التقرير بنجاح', 'success');
-        })
-        .catch(err => {
-            console.error('Error exporting report:', err);
-            showAlert('حدث خطأ أثناء تصدير التقرير', 'danger');
-        });
-}
-
-// Helper function to format date
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ar-SA');
+    alertContainer.appendChild(alertDiv);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => alertDiv.remove(), 300);
+    }, 5000);
 }
