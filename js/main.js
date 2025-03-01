@@ -1,17 +1,6 @@
 // Initialize global state
 window.appState = {
-    employees: [
-        {
-            code: 'EMP001',
-            name: 'أحمد محمد',
-            jobTitle: 'مطور برمجيات',
-            basicSalary: 5000,
-            monthlyIncentives: 500,
-            workDays: 22,
-            dailyWorkHours: 8,
-            dateAdded: new Date().toISOString()
-        }
-    ],
+    employees: [],
     currentEmployee: null,
     advances: [],
     salaryReports: [],
@@ -30,56 +19,51 @@ const validationSchemas = {
     }
 };
 
-// Load saved data from localStorage
-function loadSavedData() {
+// Load initial data from Firestore
+async function loadInitialData() {
     try {
         // Load employees
-        const savedEmployees = localStorage.getItem('employees');
-        if (savedEmployees) {
-            window.appState.employees = JSON.parse(savedEmployees);
+        const employees = await window.firebaseService.getFromFirestore('employees');
+        if (employees) {
+            window.appState.employees = employees;
         }
         
         // Load advances
-        const savedAdvances = localStorage.getItem('advances');
-        if (savedAdvances) {
-            window.appState.advances = JSON.parse(savedAdvances);
+        const advances = await window.firebaseService.getFromFirestore('advances');
+        if (advances) {
+            window.appState.advances = advances;
         }
         
         // Load salary reports
-        const savedReports = localStorage.getItem('salaryReports');
-        if (savedReports) {
-            window.appState.salaryReports = JSON.parse(savedReports);
+        const reports = await window.firebaseService.getFromFirestore('salaryReports');
+        if (reports) {
+            window.appState.salaryReports = reports;
         }
         
         // Load leave requests
-        const savedLeaveRequests = localStorage.getItem('leaveRequests');
-        if (savedLeaveRequests) {
-            window.appState.leaveRequests = JSON.parse(savedLeaveRequests);
+        const leaveRequests = await window.firebaseService.getFromFirestore('leaveRequests');
+        if (leaveRequests) {
+            window.appState.leaveRequests = leaveRequests;
         }
         
         // Load absence records
-        const savedAbsenceRecords = localStorage.getItem('absenceRecords');
-        if (savedAbsenceRecords) {
-            window.appState.absenceRecords = JSON.parse(savedAbsenceRecords);
-        }
-        
-        // Load last backup timestamp
-        const lastBackup = localStorage.getItem('lastBackup');
-        if (lastBackup) {
-            window.appState.lastBackup = lastBackup;
+        const absenceRecords = await window.firebaseService.getFromFirestore('absenceRecords');
+        if (absenceRecords) {
+            window.appState.absenceRecords = absenceRecords;
         }
     } catch (error) {
-        console.error('Error loading from localStorage:', error);
-        showAlert('حدث خطأ أثناء تحميل البيانات المحفوظة', 'danger');
+        console.error('Error loading initial data:', error);
+        showAlert('حدث خطأ أثناء تحميل البيانات', 'danger');
     }
 }
 
-// Save data to localStorage
-function saveToLocalStorage(key, data) {
+// Save data to Firestore
+async function saveToFirestore(collection, data) {
     try {
-        localStorage.setItem(key, JSON.stringify(data));
+        await window.firebaseService.saveToFirestore(collection, data);
     } catch (error) {
-        console.error('Error saving to localStorage:', error);
+        console.error('Error saving to Firestore:', error);
+        showAlert('حدث خطأ أثناء حفظ البيانات', 'danger');
     }
 }
 
@@ -111,9 +95,9 @@ function showAlert(message, type = 'info') {
 }
 
 // Initialize application when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Load saved data
-    loadSavedData();
+document.addEventListener('DOMContentLoaded', async function() {
+    // Load initial data
+    await loadInitialData();
     
     // Initialize navigation
     initializeNavigation();

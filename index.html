@@ -3,131 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الرواتب</title>
+    <title>نظام إدارة الموظفين والرواتب</title>
     
     <!-- Bootstrap RTL CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     
     <!-- Custom CSS -->
-    <link href="styles/main.css" rel="stylesheet">
-    <link href="styles/chart-styles.css" rel="stylesheet">
-    <link href="styles/dashboard-styles.css" rel="stylesheet">
-    <link href="styles/dark-theme.css" rel="stylesheet">
-    <link href="styles/arabic-typography.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/dashboard-styles.css">
+    <link rel="stylesheet" href="styles/arabic-typography.css">
+    <link rel="stylesheet" href="styles/chart-styles.css">
     
-    <!-- Arabic Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Additional Arabic Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
 </head>
 <body>
     <div class="d-flex" id="wrapper">
         <!-- Sidebar -->
-        <div class="bg-white" id="sidebar-wrapper">
+        <div class="border-end bg-white" id="sidebar-wrapper">
             <div class="sidebar-heading border-bottom bg-light">
-                <img src="logo.png" alt="Logo" class="logo-img">
-                نظام الرواتب
+                <img src="Logo نظام الرواتب.png" alt="نظام الرواتب Logo" class="img-fluid" style="max-height: 50px;">
             </div>
             <div class="list-group list-group-flush">
-                <a href="#" class="list-group-item list-group-item-action active" id="dashboard-tab">
-                    <i class="fas fa-tachometer-alt me-2"></i>لوحة التحكم
+                <a href="#" class="list-group-item list-group-item-action" id="dashboard-tab">
+                    <i class="fas fa-tachometer-alt me-2"></i> لوحة التحكم
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="employees-tab">
-                    <i class="fas fa-users me-2"></i>الموظفين
+                    <i class="fas fa-users me-2"></i> الموظفين
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="payroll-tab">
-                    <i class="fas fa-money-bill-wave me-2"></i>نظام الرواتب
+                    <i class="fas fa-money-bill-wave me-2"></i> نظام الرواتب
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="advances-tab">
-                    <i class="fas fa-hand-holding-usd me-2"></i>إدارة السلف
+                    <i class="fas fa-hand-holding-usd me-2"></i> إدارة السلف
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="time-tracking-tab">
-                    <i class="fas fa-clock me-2"></i>تتبع وقت الموظفين
+                    <i class="fas fa-clock me-2"></i> تتبع وقت الموظفين
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="leave-management-tab">
-                    <i class="fas fa-calendar-alt me-2"></i>إدارة الإجازات
+                    <i class="fas fa-calendar-alt me-2"></i> إدارة الإجازات
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="reports-tab">
-                    <i class="fas fa-chart-bar me-2"></i>نظام التقارير
+                    <i class="fas fa-chart-bar me-2"></i> نظام التقارير
                 </a>
-                <a href="#" class="list-group-item list-group-item-action" id="task-management-tab">
-                    <i class="fas fa-tasks me-2"></i>نظام المهام
-                </a>
-                <a href="#" class="list-group-item list-group-item-action" id="advanced-analytics-tab">
-                    <i class="fas fa-chart-line me-2"></i>التحليلات المتقدمة
-                </a>
-                <a href="#" class="list-group-item list-group-item-action" id="print-tab">
-                    <i class="fas fa-print me-2"></i>طباعة
+                <a href="#" class="list-group-item list-group-item-action" id="tasks-tab">
+                    <i class="fas fa-tasks me-2"></i> نظام المهام
                 </a>
             </div>
         </div>
-        
+
         <!-- Page Content -->
         <div id="page-content-wrapper">
+            <!-- Top navigation-->
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
                 <div class="container-fluid">
-                    <button class="btn btn-primary" id="menu-toggle">
-                        <i class="fas fa-bars"></i>
+                    <button class="btn btn-primary" id="sidebarToggle">القائمة</button>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
                     </button>
-                    
-                    <h2 class="fs-2 ms-3">لوحة التحكم</h2>
-                    
-                    <div class="ms-auto d-flex align-items-center">
-                        <button class="btn btn-outline-primary me-2" onclick="backupData()">
-                            <i class="fas fa-download me-1"></i>تصدير
-                        </button>
-                        
-                        <div class="dropdown">
-                            <button class="btn btn-link nav-link dropdown-toggle" type="button" id="dropdownMenuButton" 
-                                    data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user-circle fa-lg"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>الإعدادات</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج</a></li>
-                            </ul>
-                        </div>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="theme-toggle">
+                                    <i class="fas fa-moon"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="settings-toggle">
+                                    <i class="fas fa-cog"></i>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </nav>
-            
-            <div class="container-fluid p-4">
-                <div id="main-content"></div>
+
+            <!-- Page content-->
+            <div class="container-fluid">
+                <!-- Content will be dynamically loaded here -->
             </div>
         </div>
     </div>
-    
+
     <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-analytics.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
-    <!-- Application Scripts -->
-    <!-- Load main.js first as it initializes appState -->
+    <!-- Custom JS -->
+    <script src="js/firebaseService.js"></script>
     <script src="js/main.js"></script>
     <script src="js/dashboard.js"></script>
-    <script src="js/firebaseService.js"></script>
+    <script src="js/leave-management.js"></script>
+    <script src="js/time-tracking.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/task-management.js"></script>
+    <script src="js/theme-switcher.js"></script>
     <script src="js/performance-optimizations.js"></script>
     <script src="js/charts.js"></script>
-    <script src="js/payroll.js"></script>
-    <script src="js/reports.js"></script>
-    <script src="js/time-tracking.js"></script>
-    <script src="js/leave-management.js"></script>
-    <script src="js/theme-switcher.js"></script>
-    <script src="js/theme-color-selector.js"></script>
-    <script src="js/dashboard-customizer.js"></script>
-    <script src="js/dashboard-drag-drop.js"></script>
-    <script src="js/task-management.js"></script>
-    <script src="js/advanced-analytics.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
